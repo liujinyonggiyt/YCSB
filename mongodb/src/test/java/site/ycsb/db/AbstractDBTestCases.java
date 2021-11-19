@@ -16,31 +16,21 @@
  */
 package site.ycsb.db;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeNoException;
-
+import org.junit.BeforeClass;
+import org.junit.Test;
 import site.ycsb.ByteArrayByteIterator;
 import site.ycsb.ByteIterator;
 import site.ycsb.DB;
 import site.ycsb.Status;
 
-import org.junit.BeforeClass;
-import org.junit.Test;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
+
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * MongoDbClientTest provides runs the basic DB test cases.
@@ -52,7 +42,9 @@ import java.util.Vector;
 @SuppressWarnings("boxing")
 public abstract class AbstractDBTestCases {
 
-  /** The default port for MongoDB. */
+  /**
+   * The default port for MongoDB.
+   */
   private static final int MONGODB_DEFAULT_PORT = 27017;
 
   /**
@@ -94,7 +86,7 @@ public abstract class AbstractDBTestCases {
 
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
-    inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
+    inserted.put("a", new ByteArrayByteIterator(new byte[]{1, 2, 3, 4}));
     Status result = client.insert(table, id, inserted);
     assertThat("Insert did not return success (0).", result, is(Status.OK));
 
@@ -143,7 +135,7 @@ public abstract class AbstractDBTestCases {
 
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
-    inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
+    inserted.put("a", new ByteArrayByteIterator(new byte[]{1, 2, 3, 4}));
     Status result = client.insert(table, id, inserted);
     assertThat("Insert did not return success (0).", result, is(Status.OK));
 
@@ -168,7 +160,7 @@ public abstract class AbstractDBTestCases {
     }
 
     HashMap<String, ByteIterator> updated = new HashMap<String, ByteIterator>();
-    updated.put("a", new ByteArrayByteIterator(new byte[] { 5, 6, 7, 8 }));
+    updated.put("a", new ByteArrayByteIterator(new byte[]{5, 6, 7, 8}));
     result = client.update(table, id, updated);
     assertThat("Update did not return success (0).", result, is(Status.OK));
 
@@ -206,7 +198,7 @@ public abstract class AbstractDBTestCases {
 
     HashMap<String, ByteIterator> inserted =
         new HashMap<String, ByteIterator>();
-    inserted.put("a", new ByteArrayByteIterator(new byte[] { 1, 2, 3, 4 }));
+    inserted.put("a", new ByteArrayByteIterator(new byte[]{1, 2, 3, 4}));
     Status result = client.insert(table, id, inserted);
     assertThat("Insert did not return success (0).", result, is(Status.OK));
 
@@ -231,7 +223,7 @@ public abstract class AbstractDBTestCases {
     }
 
     HashMap<String, ByteIterator> updated = new HashMap<String, ByteIterator>();
-    updated.put("a", new ByteArrayByteIterator(new byte[] { 5, 6, 7, 8 }));
+    updated.put("a", new ByteArrayByteIterator(new byte[]{5, 6, 7, 8}));
     result = client.update(table, id, updated);
     assertThat("Update did not return success (0).", result, is(Status.OK));
 
@@ -268,9 +260,9 @@ public abstract class AbstractDBTestCases {
     for (int i = 0; i < 100; ++i) {
       HashMap<String, ByteIterator> inserted =
           new HashMap<String, ByteIterator>();
-      inserted.put("a", new ByteArrayByteIterator(new byte[] {
+      inserted.put("a", new ByteArrayByteIterator(new byte[]{
           (byte) (i & 0xFF), (byte) (i >> 8 & 0xFF), (byte) (i >> 16 & 0xFF),
-          (byte) (i >> 24 & 0xFF) }));
+          (byte) (i >> 24 & 0xFF)}));
       Status result = client.insert(table, padded(i), inserted);
       assertThat("Insert did not return success (0).", result, is(Status.OK));
     }
@@ -306,7 +298,7 @@ public abstract class AbstractDBTestCases {
 
   /**
    * Gets the test DB.
-   * 
+   *
    * @return The test DB.
    */
   protected DB getDB() {
@@ -315,18 +307,16 @@ public abstract class AbstractDBTestCases {
 
   /**
    * Gets the test DB.
-   * 
-   * @param props 
-   *    Properties to pass to the client.
+   *
+   * @param props Properties to pass to the client.
    * @return The test DB.
    */
   protected abstract DB getDB(Properties props);
 
   /**
    * Creates a zero padded integer.
-   * 
-   * @param i
-   *          The integer to padd.
+   *
+   * @param i The integer to padd.
    * @return The padded integer.
    */
   private String padded(int i) {

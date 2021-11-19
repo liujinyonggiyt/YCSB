@@ -17,12 +17,11 @@ LICENSE file.
 
 ## Quick Start
 
-This section describes how to run YCSB on MongoDB. 
+This section describes how to run YCSB on MongoDB.
 
 ### 1. Start MongoDB
 
-First, download MongoDB and start `mongod`. For example, to start MongoDB
-on x86-64 Linux box:
+First, download MongoDB and start `mongod`. For example, to start MongoDB on x86-64 Linux box:
 
     wget http://fastdl.mongodb.org/linux/mongodb-linux-x86_64-x.x.x.tgz
     tar xfvz mongodb-linux-x86_64-*.tgz
@@ -30,8 +29,8 @@ on x86-64 Linux box:
     cd mongodb-linux-x86_64-*
     ./bin/mongod --dbpath /tmp/mongodb
 
-Replace x.x.x above with the latest stable release version for MongoDB.
-See http://docs.mongodb.org/manual/installation/ for installation steps for various operating systems.
+Replace x.x.x above with the latest stable release version for MongoDB. See http://docs.mongodb.org/manual/installation/
+for installation steps for various operating systems.
 
 ### 2. Install Java and Maven
 
@@ -41,7 +40,7 @@ and get the url to download the rpm into your server. For example:
 
     wget http://download.oracle.com/otn-pub/java/jdk/7u40-b43/jdk-7u40-linux-x64.rpm?AuthParam=11232426132 -o jdk-7u40-linux-x64.rpm
     rpm -Uvh jdk-7u40-linux-x64.rpm
-    
+
 Or install via yum/apt-get
 
     sudo yum install java-devel
@@ -81,19 +80,22 @@ Now you are ready to run! First, use the asynchronous driver to load the data:
 Then, run the workload:
 
     ./bin/ycsb run mongodb-async -s -P workloads/workloada > outputRun.txt
-    
-Similarly, to use the synchronous driver from MongoDB Inc. we load the data: 
+
+Similarly, to use the synchronous driver from MongoDB Inc. we load the data:
 
     ./bin/ycsb load mongodb -s -P workloads/workloada > outputLoad.txt
 
 Then, run the workload:
 
     ./bin/ycsb run mongodb -s -P workloads/workloada > outputRun.txt
-    
+
 See the next section for the list of configuration parameters for MongoDB.
 
 ## Log Level Control
-Due to the mongodb driver defaulting to a log level of DEBUG, a logback.xml file is included with this module that restricts the org.mongodb logging to WARN. You can control this by overriding the logback.xml and defining it in your ycsb command by adding this flag:
+
+Due to the mongodb driver defaulting to a log level of DEBUG, a logback.xml file is included with this module that
+restricts the org.mongodb logging to WARN. You can control this by overriding the logback.xml and defining it in your
+ycsb command by adding this flag:
 
 ```
 bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml"
@@ -102,9 +104,9 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
 ## MongoDB Configuration Parameters
 
 - `mongodb.url`
-  - This should be a MongoDB URI or connection string. 
+  - This should be a MongoDB URI or connection string.
     - See http://docs.mongodb.org/manual/reference/connection-string/ for the standard options.
-    - For the complete set of options for the asynchronous driver see: 
+    - For the complete set of options for the asynchronous driver see:
       - http://www.allanbank.com/mongodb-async-driver/apidocs/index.html?com/allanbank/mongodb/MongoDbUri.html
     - For the complete set of options for the synchronous driver see:
       - http://api.mongodb.org/java/current/index.html?com/mongodb/MongoClientURI.html
@@ -116,8 +118,8 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
   - Default value is `1`.
 
 - `mongodb.upsert`
-  - Determines if the insert operation performs an update with the upsert operation or a insert. 
-    Upserts have the advantage that they will continue to work for a partially loaded data set.
+  - Determines if the insert operation performs an update with the upsert operation or a insert. Upserts have the
+    advantage that they will continue to work for a partially loaded data set.
   - Setting to `true` uses updates, `false` uses insert operations.
   - Default value is `false`.
 
@@ -131,7 +133,7 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
     - `replica_acknowledged`
     - `majority`
   - Default value is `acknowledged`.
- 
+
 - `mongodb.readPreference`
   - **Deprecated** - Use the `readPreference` options on the MongoDB URI provided by the `mongodb.url`.
   - Allowed values are :
@@ -141,7 +143,7 @@ bin/ycsb run mongodb -jvm-args="-Dlogback.configurationFile=/path/to/logback.xml
     - `secondary_preferred`
     - `nearest`
   - Default value is `primary`.
- 
+
 - `mongodb.maxconnections`
   - **Deprecated** - Use the `maxPoolSize` options on the MongoDB URI provided by the `mongodb.url`.
   - Default value is `100`.

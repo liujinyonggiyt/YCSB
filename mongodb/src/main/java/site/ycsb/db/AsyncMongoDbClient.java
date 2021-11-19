@@ -16,18 +16,7 @@
  */
 package site.ycsb.db;
 
-import static com.allanbank.mongodb.builder.QueryBuilder.where;
-
-import com.allanbank.mongodb.Durability;
-import com.allanbank.mongodb.LockType;
-import com.allanbank.mongodb.MongoClient;
-import com.allanbank.mongodb.MongoClientConfiguration;
-import com.allanbank.mongodb.MongoCollection;
-import com.allanbank.mongodb.MongoDatabase;
-import com.allanbank.mongodb.MongoDbUri;
-import com.allanbank.mongodb.MongoFactory;
-import com.allanbank.mongodb.MongoIterator;
-import com.allanbank.mongodb.ReadPreference;
+import com.allanbank.mongodb.*;
 import com.allanbank.mongodb.bson.Document;
 import com.allanbank.mongodb.bson.Element;
 import com.allanbank.mongodb.bson.ElementType;
@@ -43,13 +32,10 @@ import site.ycsb.DB;
 import site.ycsb.DBException;
 import site.ycsb.Status;
 
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static com.allanbank.mongodb.builder.QueryBuilder.where;
 
 /**
  * MongoDB asynchronous client for YCSB framework using the <a
@@ -61,17 +47,23 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * @author rjm
  * @see <a href="http://www.allanbank.com/mongodb-async-driver/">Asynchronous
- *      Java Driver</a>
+ * Java Driver</a>
  */
 public class AsyncMongoDbClient extends DB {
 
-  /** Used to include a field in a response. */
+  /**
+   * Used to include a field in a response.
+   */
   protected static final int INCLUDE = 1;
 
-  /** The database to use. */
+  /**
+   * The database to use.
+   */
   private static String databaseName;
 
-  /** Thread local document builder. */
+  /**
+   * Thread local document builder.
+   */
   private static final ThreadLocal<DocumentBuilder> DOCUMENT_BUILDER =
       new ThreadLocal<DocumentBuilder>() {
         @Override
@@ -80,32 +72,50 @@ public class AsyncMongoDbClient extends DB {
         }
       };
 
-  /** The write concern for the requests. */
+  /**
+   * The write concern for the requests.
+   */
   private static final AtomicInteger INIT_COUNT = new AtomicInteger(0);
 
-  /** The connection to MongoDB. */
+  /**
+   * The connection to MongoDB.
+   */
   private static MongoClient mongoClient;
 
-  /** The write concern for the requests. */
+  /**
+   * The write concern for the requests.
+   */
   private static Durability writeConcern;
 
-  /** Which servers to use for reads. */
+  /**
+   * Which servers to use for reads.
+   */
   private static ReadPreference readPreference;
 
-  /** The database to MongoDB. */
+  /**
+   * The database to MongoDB.
+   */
   private MongoDatabase database;
 
-  /** The batch size to use for inserts. */
+  /**
+   * The batch size to use for inserts.
+   */
   private static int batchSize;
-  
-  /** If true then use updates with the upsert option for inserts. */
+
+  /**
+   * If true then use updates with the upsert option for inserts.
+   */
   private static boolean useUpsert;
 
-  /** The bulk inserts pending for the thread. */
+  /**
+   * The bulk inserts pending for the thread.
+   */
   private final BatchedWrite.Builder batchedWrite = BatchedWrite.builder()
       .mode(BatchedWriteMode.REORDERED);
 
-  /** The number of writes in the batchedWrite. */
+  /**
+   * The number of writes in the batchedWrite.
+   */
   private int batchedWriteCount = 0;
 
   /**
@@ -131,13 +141,11 @@ public class AsyncMongoDbClient extends DB {
 
   /**
    * Delete a record from the database.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to delete.
+   *
+   * @param table The name of the table
+   * @param key   The record key of the record to delete.
    * @return Zero on success, a non-zero error code on error. See this class's
-   *         description for a discussion of error codes.
+   * description for a discussion of error codes.
    */
   @Override
   public final Status delete(final String table, final String key) {
@@ -182,11 +190,11 @@ public class AsyncMongoDbClient extends DB {
 
       // Set insert batchsize, default 1 - to be YCSB-original equivalent
       batchSize = Integer.parseInt(props.getProperty("mongodb.batchsize", "1"));
-      
+
       // Set is inserts are done as upserts. Defaults to false.
       useUpsert = Boolean.parseBoolean(
           props.getProperty("mongodb.upsert", "false"));
-      
+
       // Just use the standard connection format URL
       // http://docs.mongodb.org/manual/reference/connection-string/
       // to configure the client.
@@ -239,19 +247,16 @@ public class AsyncMongoDbClient extends DB {
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to insert.
-   * @param values
-   *          A HashMap of field/value pairs to insert in the record
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to insert.
+   * @param values A HashMap of field/value pairs to insert in the record
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public final Status insert(final String table, final String key,
-      final Map<String, ByteIterator> values) {
+                             final Map<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder toInsert =
@@ -278,7 +283,7 @@ public class AsyncMongoDbClient extends DB {
       // Use a bulk insert.
       try {
         if (useUpsert) {
-          batchedWrite.update(query, toInsert, /* multi= */false, 
+          batchedWrite.update(query, toInsert, /* multi= */false,
               /* upsert= */true);
         } else {
           batchedWrite.insert(toInsert);
@@ -316,20 +321,16 @@ public class AsyncMongoDbClient extends DB {
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to read.
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A HashMap of field/value pairs for the result
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to read.
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
    * @return Zero on success, a non-zero error code on error or "not found".
    */
   @Override
   public final Status read(final String table, final String key,
-      final Set<String> fields, final Map<String, ByteIterator> result) {
+                           final Set<String> fields, final Map<String, ByteIterator> result) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder query =
@@ -372,25 +373,20 @@ public class AsyncMongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
-   * @param table
-   *          The name of the table
-   * @param startkey
-   *          The record key of the first record to read.
-   * @param recordcount
-   *          The number of records to read
-   * @param fields
-   *          The list of fields to read, or null for all of them
-   * @param result
-   *          A Vector of HashMaps, where each HashMap is a set field/value
-   *          pairs for one record
+   *
+   * @param table       The name of the table
+   * @param startkey    The record key of the first record to read.
+   * @param recordcount The number of records to read
+   * @param fields      The list of fields to read, or null for all of them
+   * @param result      A Vector of HashMaps, where each HashMap is a set field/value
+   *                    pairs for one record
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public final Status scan(final String table, final String startkey,
-      final int recordcount, final Set<String> fields,
-      final Vector<HashMap<String, ByteIterator>> result) {
+                           final int recordcount, final Set<String> fields,
+                           final Vector<HashMap<String, ByteIterator>> result) {
     try {
       final MongoCollection collection = database.getCollection(table);
 
@@ -438,19 +434,16 @@ public class AsyncMongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to write.
-   * @param values
-   *          A HashMap of field/value pairs to update in the record
+   *
+   * @param table  The name of the table
+   * @param key    The record key of the record to write.
+   * @param values A HashMap of field/value pairs to update in the record
    * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
+   * class's description for a discussion of error codes.
    */
   @Override
   public final Status update(final String table, final String key,
-      final Map<String, ByteIterator> values) {
+                             final Map<String, ByteIterator> values) {
     try {
       final MongoCollection collection = database.getCollection(table);
       final DocumentBuilder query = BuilderFactory.start().add("_id", key);
@@ -471,14 +464,12 @@ public class AsyncMongoDbClient extends DB {
 
   /**
    * Fills the map with the ByteIterators from the document.
-   * 
-   * @param result
-   *          The map to fill.
-   * @param queryResult
-   *          The document to fill from.
+   *
+   * @param result      The map to fill.
+   * @param queryResult The document to fill from.
    */
   protected final void fillMap(final Map<String, ByteIterator> result,
-      final Document queryResult) {
+                               final Document queryResult) {
     for (final Element be : queryResult) {
       if (be.getType() == ElementType.BINARY) {
         result.put(be.getName(),
@@ -493,17 +484,20 @@ public class AsyncMongoDbClient extends DB {
    */
   private static final class BinaryByteArrayIterator extends ByteIterator {
 
-    /** The binary data. */
+    /**
+     * The binary data.
+     */
     private final BinaryElement binaryElement;
 
-    /** The current offset into the binary element. */
+    /**
+     * The current offset into the binary element.
+     */
     private int offset;
 
     /**
      * Creates a new BinaryByteArrayIterator.
-     * 
-     * @param element
-     *          The {@link BinaryElement} to iterate over.
+     *
+     * @param element The {@link BinaryElement} to iterate over.
      */
     public BinaryByteArrayIterator(final BinaryElement element) {
       this.binaryElement = element;

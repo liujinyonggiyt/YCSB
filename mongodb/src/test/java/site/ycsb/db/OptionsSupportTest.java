@@ -16,13 +16,13 @@
  */
 package site.ycsb.db;
 
-import static site.ycsb.db.OptionsSupport.updateUrl;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import org.junit.Test;
 
 import java.util.Properties;
 
-import org.junit.Test;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static site.ycsb.db.OptionsSupport.updateUrl;
 
 /**
  * OptionsSupportTest provides tests for the OptionsSupport class.
@@ -166,11 +166,9 @@ public class OptionsSupportTest {
 
   /**
    * Factory method for a {@link Properties} object.
-   * 
-   * @param key
-   *          The key for the property to set.
-   * @param value
-   *          The value for the property to set.
+   *
+   * @param key   The key for the property to set.
+   * @param value The value for the property to set.
    * @return The {@link Properties} with the property added.
    */
   private Properties props(String key, String value) {

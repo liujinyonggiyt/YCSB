@@ -25,17 +25,17 @@ import java.util.Properties;
  */
 public final class OptionsSupport {
 
-  /** Value for an unavailable property. */
+  /**
+   * Value for an unavailable property.
+   */
   private static final String UNAVAILABLE = "n/a";
 
   /**
    * Updates the URL with the appropriate attributes if legacy properties are
    * set and the URL does not have the property already set.
    *
-   * @param url
-   *          The URL to update.
-   * @param props
-   *          The legacy properties.
+   * @param url   The URL to update.
+   * @param props The legacy properties.
    * @return The updated URL.
    */
   public static String updateUrl(String url, Properties props) {
@@ -117,12 +117,9 @@ public final class OptionsSupport {
   /**
    * Adds an option to the url if it does not already contain the option.
    *
-   * @param url
-   *          The URL to append the options to.
-   * @param name
-   *          The name of the option.
-   * @param value
-   *          The value for the option.
+   * @param url   The URL to append the options to.
+   * @param name  The name of the option.
+   * @param value The value for the option.
    * @return The updated URL.
    */
   private static String addUrlOption(String url, String name, String value) {

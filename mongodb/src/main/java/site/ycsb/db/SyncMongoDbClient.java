@@ -1,12 +1,12 @@
 /**
  * Copyright (c) 2012 - 2015 YCSB contributors. All rights reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License"); you
  * may not use this file except in compliance with the License. You
  * may obtain a copy of the License at
- *
+ * <p>
  * http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
@@ -24,35 +24,21 @@
  */
 package site.ycsb.db;
 
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.ReadPreference;
-import com.mongodb.WriteConcern;
-import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
+import com.mongodb.client.*;
 import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.ReplaceOptions;
 import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
-import site.ycsb.ByteArrayByteIterator;
-import site.ycsb.ByteIterator;
-import site.ycsb.DB;
-import site.ycsb.DBException;
-import site.ycsb.Status;
-
 import org.bson.Document;
 import org.bson.types.Binary;
+import site.ycsb.*;
+import site.ycsb.db.monitor.MongoMonitor;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -61,12 +47,12 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p>
  * See the <code>README.md</code> for configuration information.
  * </p>
- * 
+ *
  * @author ypai
  * @see <a href="http://docs.mongodb.org/ecosystem/drivers/java/">MongoDB Inc.
  *      driver</a>
  */
-public class MongoDbClient extends DB {
+public class SyncMongoDbClient extends DB {
 
   /** Used to include a field in a response. */
   private static final Integer INCLUDE = Integer.valueOf(1);
@@ -96,12 +82,6 @@ public class MongoDbClient extends DB {
   /** A singleton Mongo instance. */
   private static MongoClient mongoClient;
 
-  /** The default read preference for the test. */
-  private static ReadPreference readPreference;
-
-  /** The default write concern for the test. */
-  private static WriteConcern writeConcern;
-
   /** The batch size to use for inserts. */
   private static int batchSize;
 
@@ -110,56 +90,6 @@ public class MongoDbClient extends DB {
 
   /** The bulk inserts pending for the thread. */
   private final List<Document> bulkInserts = new ArrayList<Document>();
-
-  /**
-   * Cleanup any state for this DB. Called once per DB instance; there is one DB
-   * instance per client thread.
-   */
-  @Override
-  public void cleanup() throws DBException {
-    if (INIT_COUNT.decrementAndGet() == 0) {
-      try {
-        mongoClient.close();
-      } catch (Exception e1) {
-        System.err.println("Could not close MongoDB connection pool: "
-            + e1.toString());
-        e1.printStackTrace();
-        return;
-      } finally {
-        database = null;
-        mongoClient = null;
-      }
-    }
-  }
-
-  /**
-   * Delete a record from the database.
-   * 
-   * @param table
-   *          The name of the table
-   * @param key
-   *          The record key of the record to delete.
-   * @return Zero on success, a non-zero error code on error. See the {@link DB}
-   *         class's description for a discussion of error codes.
-   */
-  @Override
-  public Status delete(String table, String key) {
-    try {
-      MongoCollection<Document> collection = database.getCollection(table);
-
-      Document query = new Document("_id", key);
-      DeleteResult result =
-          collection.withWriteConcern(writeConcern).deleteOne(query);
-      if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
-        System.err.println("Nothing deleted for key " + key);
-        return Status.NOT_FOUND;
-      }
-      return Status.OK;
-    } catch (Exception e) {
-      System.err.println(e.toString());
-      return Status.ERROR;
-    }
-  }
 
   /**
    * Initialize any state for this DB. Called once per DB instance; there is one
@@ -204,9 +134,9 @@ public class MongoDbClient extends DB {
       }
 
       try {
-        MongoClientURI uri = new MongoClientURI(url);
+        ConnectionString connectionString = new ConnectionString(url);
 
-        String uriDb = uri.getDatabase();
+        String uriDb = connectionString.getDatabase();
         if (!defaultedUrl && (uriDb != null) && !uriDb.isEmpty()
             && !"admin".equals(uriDb)) {
           databaseName = uriDb;
@@ -216,14 +146,13 @@ public class MongoDbClient extends DB {
 
         }
 
-        readPreference = uri.getOptions().getReadPreference();
-        writeConcern = uri.getOptions().getWriteConcern();
+        int monitorPort = Integer.parseInt(props.getProperty("mongodb.monitor.port", "1234"));
+        MongoClientSettings.Builder mongoClientSettingsBuilder = MongoMonitor.mongoClientSettingsBuilder(monitorPort);
+        mongoClientSettingsBuilder.applyConnectionString(connectionString);
+        mongoClient = MongoClients.create(mongoClientSettingsBuilder.build());
 
-        mongoClient = new MongoClient(uri);
         database =
-            mongoClient.getDatabase(databaseName)
-                .withReadPreference(readPreference)
-                .withWriteConcern(writeConcern);
+            mongoClient.getDatabase(databaseName);
 
         System.out.println("mongo client connection created with " + url);
       } catch (Exception e1) {
@@ -237,10 +166,60 @@ public class MongoDbClient extends DB {
   }
 
   /**
+   * Cleanup any state for this DB. Called once per DB instance; there is one DB
+   * instance per client thread.
+   */
+  @Override
+  public void cleanup() throws DBException {
+    if (INIT_COUNT.decrementAndGet() == 0) {
+      try {
+        mongoClient.close();
+      } catch (Exception e1) {
+        System.err.println("Could not close MongoDB connection pool: "
+            + e1.toString());
+        e1.printStackTrace();
+        return;
+      } finally {
+        database = null;
+        mongoClient = null;
+      }
+    }
+  }
+
+  /**
+   * Delete a record from the database.
+   *
+   * @param table
+   *          The name of the table
+   * @param key
+   *          The record key of the record to delete.
+   * @return Zero on success, a non-zero error code on error. See the {@link DB}
+   *         class's description for a discussion of error codes.
+   */
+  @Override
+  public Status delete(String table, String key) {
+    try {
+      MongoCollection<Document> collection = database.getCollection(table);
+
+      Document query = new Document("_id", key);
+      DeleteResult result =
+          collection.deleteOne(query);
+      if (result.wasAcknowledged() && result.getDeletedCount() == 0) {
+        System.err.println("Nothing deleted for key " + key);
+        return Status.NOT_FOUND;
+      }
+      return Status.OK;
+    } catch (Exception e) {
+      System.err.println(e.toString());
+      return Status.ERROR;
+    }
+  }
+
+  /**
    * Insert a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -252,7 +231,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status insert(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document toInsert = new Document("_id", key);
@@ -266,7 +245,7 @@ public class MongoDbClient extends DB {
           // to current inability of the framework to clean up after itself
           // between test runs.
           collection.replaceOne(new Document("_id", toInsert.get("_id")),
-              toInsert, UPDATE_WITH_UPSERT);
+              toInsert, new ReplaceOptions().upsert(true));
         } else {
           collection.insertOne(toInsert);
         }
@@ -274,7 +253,7 @@ public class MongoDbClient extends DB {
         bulkInserts.add(toInsert);
         if (bulkInserts.size() == batchSize) {
           if (useUpsert) {
-            List<UpdateOneModel<Document>> updates = 
+            List<UpdateOneModel<Document>> updates =
                 new ArrayList<UpdateOneModel<Document>>(bulkInserts.size());
             for (Document doc : bulkInserts) {
               updates.add(new UpdateOneModel<Document>(
@@ -303,7 +282,7 @@ public class MongoDbClient extends DB {
   /**
    * Read a record from the database. Each field/value pair from the result will
    * be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -316,7 +295,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status read(String table, String key, Set<String> fields,
-      Map<String, ByteIterator> result) {
+                     Map<String, ByteIterator> result) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
       Document query = new Document("_id", key);
@@ -346,7 +325,7 @@ public class MongoDbClient extends DB {
   /**
    * Perform a range scan for a set of records in the database. Each field/value
    * pair from the result will be stored in a HashMap.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param startkey
@@ -363,7 +342,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status scan(String table, String startkey, int recordcount,
-      Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
+                     Set<String> fields, Vector<HashMap<String, ByteIterator>> result) {
     MongoCursor<Document> cursor = null;
     try {
       MongoCollection<Document> collection = database.getCollection(table);
@@ -417,7 +396,7 @@ public class MongoDbClient extends DB {
    * Update a record in the database. Any field/value pairs in the specified
    * values HashMap will be written into the record with the specified record
    * key, overwriting any existing values with the same field name.
-   * 
+   *
    * @param table
    *          The name of the table
    * @param key
@@ -429,7 +408,7 @@ public class MongoDbClient extends DB {
    */
   @Override
   public Status update(String table, String key,
-      Map<String, ByteIterator> values) {
+                       Map<String, ByteIterator> values) {
     try {
       MongoCollection<Document> collection = database.getCollection(table);
 
@@ -454,7 +433,7 @@ public class MongoDbClient extends DB {
 
   /**
    * Fills the map with the values from the DBObject.
-   * 
+   *
    * @param resultMap
    *          The map to fill/
    * @param obj
@@ -468,4 +447,5 @@ public class MongoDbClient extends DB {
       }
     }
   }
+
 }

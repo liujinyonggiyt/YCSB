@@ -17,7 +17,7 @@ LICENSE file.
 -->
 
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>site.ycsb</groupId>
@@ -30,11 +30,28 @@ LICENSE file.
   <name>MongoDB Binding</name>
   <packaging>jar</packaging>
 
+  <properties>
+    <mongodb.driver.sync.version>4.0.6</mongodb.driver.sync.version>
+    <micrometer-promethues.version>1.7.3</micrometer-promethues.version>
+    <promethues.version>0.12.0</promethues.version>
+  </properties>
+
+
   <dependencies>
     <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>${micrometer-promethues.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_httpserver</artifactId>
+      <version>${promethues.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.mongodb</groupId>
-      <artifactId>mongo-java-driver</artifactId>
-      <version>${mongodb.version}</version>
+      <artifactId>mongodb-driver-sync</artifactId>
+      <version>${mongodb.driver.sync.version}</version>
     </dependency>
     <dependency>
       <groupId>com.allanbank</groupId>
@@ -45,7 +62,7 @@ LICENSE file.
       <groupId>site.ycsb</groupId>
       <artifactId>core</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
+      <!--      <scope>provided</scope>-->
     </dependency>
     <dependency>
       <groupId>ch.qos.logback</groupId>

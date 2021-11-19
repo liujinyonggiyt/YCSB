@@ -16,24 +16,25 @@
  */
 package site.ycsb.db;
 
-import static org.junit.Assume.assumeNoException;
+import org.junit.After;
+import site.ycsb.DB;
 
 import java.util.Properties;
 
-import org.junit.After;
-
-import site.ycsb.DB;
+import static org.junit.Assume.assumeNoException;
 
 /**
  * MongoDbClientTest provides runs the basic workload operations.
  */
 public class MongoDbClientTest extends AbstractDBTestCases {
 
-  /** The client to use. */
+  /**
+   * The client to use.
+   */
   private DB myClient = null;
 
   protected DB instantiateClient() {
-    return new MongoDbClient();
+    return new SyncMongoDbClient();
   }
 
   /**
@@ -53,12 +54,12 @@ public class MongoDbClientTest extends AbstractDBTestCases {
   /**
    * {@inheritDoc}
    * <p>
-   * Overridden to return the {@link MongoDbClient}.
+   * Overridden to return the {@link SyncMongoDbClient}.
    * </p>
    */
   @Override
   protected DB getDB(Properties props) {
-    if( myClient == null ) {
+    if (myClient == null) {
       myClient = instantiateClient();
       myClient.setProperties(props);
       try {
@@ -69,4 +70,5 @@ public class MongoDbClientTest extends AbstractDBTestCases {
     }
     return myClient;
   }
+
 }
