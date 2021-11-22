@@ -205,3 +205,8 @@ timeseries.granularity=1000
 # htrace.span.receiver.classes=org.apache.htrace.impl.HTracedSpanReceiver
 # htrace.htraced.receiver.address=example.com:9075
 # htrace.htraced.error.log.period.ms=10000
+#
+# prometheus monitor port
+# example:http://localhost:1234/prometheus
+#mongodb.monitor.port=1234
+

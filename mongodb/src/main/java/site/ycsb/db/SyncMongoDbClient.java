@@ -24,6 +24,7 @@
  */
 package site.ycsb.db;
 
+import com.mongodb.Block;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.client.*;
@@ -33,6 +34,7 @@ import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
+import com.mongodb.connection.ConnectionPoolSettings;
 import org.bson.Document;
 import org.bson.types.Binary;
 import site.ycsb.*;
@@ -147,7 +149,14 @@ public class SyncMongoDbClient extends DB {
         }
 
         int monitorPort = Integer.parseInt(props.getProperty("mongodb.monitor.port", "1234"));
+        int poolMaxSize =  Integer.parseInt(props.getProperty("mongodb.pool.maxSize", "100"));
         MongoClientSettings.Builder mongoClientSettingsBuilder = MongoMonitor.mongoClientSettingsBuilder(monitorPort);
+        mongoClientSettingsBuilder.applyToConnectionPoolSettings(new Block<ConnectionPoolSettings.Builder>() {
+          @Override
+          public void apply(ConnectionPoolSettings.Builder builder) {
+            builder.maxSize(poolMaxSize);
+          }
+        });
         mongoClientSettingsBuilder.applyConnectionString(connectionString);
         mongoClient = MongoClients.create(mongoClientSettingsBuilder.build());
 
