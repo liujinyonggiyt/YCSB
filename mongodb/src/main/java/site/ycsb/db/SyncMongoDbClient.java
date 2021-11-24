@@ -150,7 +150,11 @@ public class SyncMongoDbClient extends DB {
 
         int monitorPort = Integer.parseInt(props.getProperty("mongodb.monitor.port", "1234"));
         int poolMaxSize =  Integer.parseInt(props.getProperty("mongodb.pool.maxSize", "100"));
-        MongoClientSettings.Builder mongoClientSettingsBuilder = MongoMonitor.mongoClientSettingsBuilder(monitorPort);
+        final String monitorClusterName = props.getProperty("mongodb.monitor.clusterName", "mongoTest");
+        final String monitorInstanceName = props.getProperty("mongodb.monitor.instanceName",
+            "monitorPort:" + monitorPort);
+        MongoClientSettings.Builder mongoClientSettingsBuilder = MongoMonitor.mongoClientSettingsBuilder(monitorPort,
+            monitorClusterName, monitorInstanceName);
         mongoClientSettingsBuilder.applyToConnectionPoolSettings(new Block<ConnectionPoolSettings.Builder>() {
           @Override
           public void apply(ConnectionPoolSettings.Builder builder) {

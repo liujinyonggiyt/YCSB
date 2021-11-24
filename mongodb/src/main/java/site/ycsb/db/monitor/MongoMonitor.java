@@ -15,7 +15,8 @@ public final class MongoMonitor {
   private MongoMonitor() {
   }
 
-  public static MongoClientSettings.Builder mongoClientSettingsBuilder(int monitorPort) {
+  public static MongoClientSettings.Builder mongoClientSettingsBuilder(
+      int monitorPort, String monitorClusterName, String monitorInstanceName) {
     PrometheusConfig prometheusConfig = new PrometheusConfig() {
       @Override
       public String get(String key) {
@@ -23,7 +24,7 @@ public final class MongoMonitor {
       }
     };
     PrometheusMeterRegistry registry = new PrometheusMeterRegistry(prometheusConfig);
-    registry.config().commonTags("clusterName", "mongoTest", "instanceName", "monitorPort:" + monitorPort);
+    registry.config().commonTags("clusterName", monitorClusterName, "instanceName", monitorInstanceName);
 
     try {
       HTTPServer server = new HTTPServer.Builder()

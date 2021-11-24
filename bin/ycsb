@@ -86,7 +86,7 @@ DATABASES = {
     "memcached"    : "site.ycsb.db.MemcachedClient",
     "maprdb"       : "site.ycsb.db.mapr.MapRDBClient",
     "maprjsondb"   : "site.ycsb.db.mapr.MapRJSONDBClient",
-    "mongodb"      : "site.ycsb.db.MongoDbClient",
+    "mongodb"      : "site.ycsb.db.SyncMongoDbClient",
     "mongodb-async": "site.ycsb.db.AsyncMongoDbClient",
     "nosqldb"      : "site.ycsb.db.NoSqlDbClient",
     "orientdb"     : "site.ycsb.db.OrientDBClient",
