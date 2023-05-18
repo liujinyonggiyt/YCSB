@@ -20,6 +20,7 @@ package site.ycsb.generator;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * 纯随机
  * Generates longs randomly uniform from an interval.
  */
 public class UniformLongGenerator extends NumberGenerator {

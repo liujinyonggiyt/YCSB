@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
+ * 柱状图分布
  * Generate integers according to a histogram distribution.  The histogram
  * buckets are of width one, but the values are multiplied by a block size.
  * Therefore, instead of drawing sizes uniformly at random within each

@@ -22,8 +22,11 @@ import java.util.Map;
 import site.ycsb.measurements.Measurements;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
+import site.ycsb.measurements.monitor.MonitorManager;
 
+import javax.annotation.Nullable;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -146,6 +149,20 @@ public class DBWrapper extends DB {
     }
   }
 
+  @Override
+  public Status batchRead(String table, List<String> keys, @Nullable List<Set<String>> fields, Vector<Map<String, ByteIterator>> result) {
+    try (final TraceScope span = tracer.newScope(scopeStringRead)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.batchRead(table, keys, fields, result);
+      long en = System.nanoTime();
+      measure("BATCH_READ", res, ist, st, en);
+      measurements.reportStatus("BATCH_READ", res);
+      MonitorManager.getInstance().batchOpt("BATCH_READ", keys.size());
+      return res;
+    }
+  }
+
   /**
    * Perform a range scan for a set of records in the database.
    * Each field/value pair from the result will be stored in a HashMap.
@@ -181,10 +198,14 @@ public class DBWrapper extends DB {
         measurementName = op + "-FAILED";
       }
     }
+    long costNanos = endTimeNanos - startTimeNanos;
     measurements.measure(measurementName,
-        (int) ((endTimeNanos - startTimeNanos) / 1000));
+        (int) (costNanos / 1000));
+    MonitorManager.getInstance().monitorOpt(measurementName, costNanos, TimeUnit.NANOSECONDS);
+
+    long costIntendedNanos = endTimeNanos - intendedStartTimeNanos;
     measurements.measureIntended(measurementName,
-        (int) ((endTimeNanos - intendedStartTimeNanos) / 1000));
+        (int) (costIntendedNanos / 1000));
   }
 
   /**
@@ -205,6 +226,20 @@ public class DBWrapper extends DB {
       long en = System.nanoTime();
       measure("UPDATE", res, ist, st, en);
       measurements.reportStatus("UPDATE", res);
+      return res;
+    }
+  }
+
+  @Override
+  public Status batchUpdate(String table, DBRow... rows) {
+    try (final TraceScope span = tracer.newScope(scopeStringUpdate)) {
+      long ist = measurements.getIntendedStartTimeNs();
+      long st = System.nanoTime();
+      Status res = db.batchUpdate(table, rows);
+      long en = System.nanoTime();
+      measure("BATCH_UPDATE", res, ist, st, en);
+      measurements.reportStatus("BATCH_UPDATE", res);
+      MonitorManager.getInstance().batchOpt("BATCH_UPDATE", rows.length);
       return res;
     }
   }

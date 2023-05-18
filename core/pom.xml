@@ -30,6 +30,8 @@ LICENSE file.
 
   <properties>
      <jackson.api.version>1.9.4</jackson.api.version>
+    <micrometer-promethues.version>1.7.3</micrometer-promethues.version>
+    <promethues.version>0.12.0</promethues.version>
   </properties>
 
   <dependencies>	
@@ -58,6 +60,22 @@ LICENSE file.
       <groupId>org.hdrhistogram</groupId>
       <artifactId>HdrHistogram</artifactId>
       <version>2.1.4</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>jsr305</artifactId>
+      <version>2.0.1</version>
+    </dependency>
+    <!-- 监控 -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <version>${micrometer-promethues.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_httpserver</artifactId>
+      <version>${promethues.version}</version>
     </dependency>
   </dependencies>
 

@@ -17,13 +17,13 @@
 
 package site.ycsb;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
-import java.util.Vector;
+import javax.annotation.Nullable;
+import java.util.*;
 
 /**
+ * The YCSB Client framework will create one instance of your DB class per worker thread,
+ * but there might be multiple worker threads generating the workload, so there might be multiple instances of your DB class created.
+ *
  * A layer for accessing a database to be benchmarked. Each thread in the client
  * will be given its own instance of whatever DB class is to be used in the test.
  * This class should be constructed using a no-argument constructor, so we can
@@ -66,6 +66,7 @@ public abstract class DB {
   /**
    * Initialize any state for this DB.
    * Called once per DB instance; there is one DB instance per client thread.
+   * The init() method will be called once per DB instance; so if there are multiple threads, each DB instance will have init() called separately.
    */
   public void init() throws DBException {
   }
@@ -86,7 +87,18 @@ public abstract class DB {
    * @param result A HashMap of field/value pairs for the result
    * @return The result of the operation.
    */
-  public abstract Status read(String table, String key, Set<String> fields, Map<String, ByteIterator> result);
+  public abstract Status read(String table, String key, @Nullable Set<String> fields, Map<String, ByteIterator> result);
+  /**
+   * Read batch record from the database. Each field/value pair from the result will be stored in a HashMap.
+   *
+   * @param table The name of the table
+   * @param fields The list of fields to read, or null for all of them
+   * @param result A HashMap of field/value pairs for the result
+   * @return The result of the operation.
+   */
+  public Status batchRead(String table, List<String> keys, @Nullable List<Set<String>> fields, Vector<Map<String, ByteIterator>> result){
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Perform a range scan for a set of records in the database. Each field/value pair from the result will be stored
@@ -99,7 +111,7 @@ public abstract class DB {
    * @param result A Vector of HashMaps, where each HashMap is a set field/value pairs for one record
    * @return The result of the operation.
    */
-  public abstract Status scan(String table, String startkey, int recordcount, Set<String> fields,
+  public abstract Status scan(String table, String startkey, int recordcount, @Nullable Set<String> fields,
                               Vector<HashMap<String, ByteIterator>> result);
 
   /**
@@ -112,6 +124,17 @@ public abstract class DB {
    * @return The result of the operation.
    */
   public abstract Status update(String table, String key, Map<String, ByteIterator> values);
+  /**
+   * Update batch record in the database. Any field/value pairs in the specified values HashMap will be written into the
+   * record with the specified record key, overwriting any existing values with the same field name.
+   *
+   * @param table The name of the table
+   * @param rows The records to write.
+   * @return The result of the operation.
+   */
+  public Status batchUpdate(String table, DBRow... rows){
+    throw new UnsupportedOperationException();
+  }
 
   /**
    * Insert a record in the database. Any field/value pairs in the specified values HashMap will be written into the

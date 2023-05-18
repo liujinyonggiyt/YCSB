@@ -23,6 +23,7 @@ import site.ycsb.measurements.exporter.TextMeasurementsExporter;
 import org.apache.htrace.core.HTraceConfiguration;
 import org.apache.htrace.core.TraceScope;
 import org.apache.htrace.core.Tracer;
+import site.ycsb.measurements.monitor.MonitorManager;
 
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -274,7 +275,7 @@ public final class Client {
   }
 
   @SuppressWarnings("unchecked")
-  public static void main(String[] args) {
+  public static void main(String[] args) throws IOException {
     Properties props = parseArguments(args);
 
     boolean status = Boolean.valueOf(props.getProperty(STATUS_PROPERTY, String.valueOf(false)));
@@ -298,6 +299,8 @@ public final class Client {
     warningthread.start();
 
     Measurements.setProperties(props);
+
+    MonitorManager.getInstance().init(props);
 
     Workload workload = getWorkload(props);
 
@@ -385,6 +388,13 @@ public final class Client {
       e.printStackTrace();
       e.printStackTrace(System.out);
       System.exit(0);
+    }
+
+    try{
+      MonitorManager.getInstance().cleanup();
+    }catch (Exception e) {
+      e.printStackTrace();
+      System.exit(-1);
     }
 
     try {

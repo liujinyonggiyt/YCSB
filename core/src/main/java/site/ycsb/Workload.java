@@ -22,6 +22,9 @@ import java.util.Properties;
 
 
 /**
+ * The YCSB Client will create one Workload object for each worker thread, so if you run the Client with multiple threads,
+ * multiple workload objects will be created.（新特性里，已经变成多线程共享的了）
+ *
  * One experiment scenario. One object of this type will
  * be instantiated and shared among all client threads. This class
  * should be constructed using a no-argument constructor, so we can

@@ -49,6 +49,9 @@ operationcount=3000000
 # The offset of the first insertion
 insertstart=0
 
+# key前缀
+keynameprefix=user
+
 # The number of fields in a record
 fieldcount=10
 
@@ -61,6 +64,8 @@ readallfields=true
 # Should write all fields on update
 writeallfields=false
 
+readallfieldsbyname=true
+
 # The distribution used to choose the length of a field
 fieldlengthdistribution=constant
 #fieldlengthdistribution=uniform
@@ -69,8 +74,20 @@ fieldlengthdistribution=constant
 # What proportion of operations are reads
 readproportion=0.95
 
+# 批量读
+batchreadproportion=0
+
 # What proportion of operations are updates
 updateproportion=0.05
+
+# 批量写
+batchupdateproportion=0
+# 最小批次
+minbatchlength=1
+# 最大批次 On a single batch, the maximum number of records to access
+maxbatchlength=1000
+# 批次数量 The distribution used to choose the number of records to access on a batch
+batchlengthdistribution=uniform
 
 # What proportion of operations are inserts
 insertproportion=0

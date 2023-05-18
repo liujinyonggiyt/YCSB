@@ -1,0 +1,57 @@
+# The name of the workload class to use
+workload=site.ycsb.workloads.CoreWorkload
+
+# There is no default setting for recordcount but it is
+# required to be set.
+# The number of records in the table to be inserted in
+# the load phase or the number of records already in the 
+# table before the run phase.
+recordcount=1000
+
+# There is no default setting for operationcount but it is
+# required to be set.
+# The number of operations to use during the run phase.
+operationcount=3000000
+
+# The number of insertions to do, if different from recordcount.
+# Used with insertstart to grow an existing table.
+#insertcount=
+
+# The offset of the first insertion
+insertstart=0
+
+# The number of fields in a record
+fieldcount=1000
+
+# The size of each field (in bytes)
+fieldlength=32
+
+
+# Should write all fields on update
+writeallfields=false
+
+readallfieldsbyname=true
+
+# The distribution used to choose the length of a field
+fieldlengthdistribution=constant
+#fieldlengthdistribution=uniform
+#fieldlengthdistribution=zipfian
+
+
+# What proportion of operations are updates
+updateproportion=1
+
+# Should records be inserted in order or pseudo-randomly
+#insertorder=hashed
+insertorder=ordered
+
+# The distribution of requests across the keyspace
+requestdistribution=zipfian
+#requestdistribution=uniform
+#requestdistribution=latest
+
+# How the latency measurements are presented
+measurementtype=histogram
+#measurementtype=timeseries
+#measurementtype=raw
+
