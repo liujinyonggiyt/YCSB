@@ -21,7 +21,9 @@ import site.ycsb.measurements.exporter.MeasurementsExporter;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.time.Duration;
 import java.util.Properties;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Take measurements and maintain a histogram of a given metric, such as READ LATENCY.
@@ -74,8 +76,13 @@ public class OneMeasurementHistogram extends OneMeasurement {
   private long windowoperations;
   private long windowtotallatency;
 
+  private long windowFirstMeasurementNano;
+  private long windowLastMeasurementNano;
+
   private int min;
   private int max;
+  private long firstMeasurementNano;
+  private long lastMeasurementNano;
 
   public OneMeasurementHistogram(String name, Properties props) {
     super(name);
@@ -102,11 +109,22 @@ public class OneMeasurementHistogram extends OneMeasurement {
     } else {
       histogram[latency / 1000]++;
     }
+    long nano = System.nanoTime();
+    if(0 == firstMeasurementNano){
+      firstMeasurementNano = nano;
+    }
+    lastMeasurementNano = nano;
+
     operations++;
     totallatency += latency;
     totalsquaredlatency += ((double) latency) * ((double) latency);
     windowoperations++;
     windowtotallatency += latency;
+    if(0 == windowFirstMeasurementNano){
+      windowFirstMeasurementNano = nano;
+      windowLastMeasurementNano = nano;
+    }
+    windowLastMeasurementNano = nano;
 
     if ((min < 0) || (latency < min)) {
       min = latency;
@@ -122,6 +140,7 @@ public class OneMeasurementHistogram extends OneMeasurement {
     double mean = totallatency / ((double) operations);
     double variance = totalsquaredlatency / ((double) operations) - (mean * mean);
     exporter.write(getName(), "Operations", operations);
+    exporter.write(getName(), "AverageOps", operations / Math.max(1, TimeUnit.NANOSECONDS.toSeconds(lastMeasurementNano-firstMeasurementNano)));
     exporter.write(getName(), "AverageLatency(us)", mean);
     exporter.write(getName(), "LatencyVariance(us)", variance);
     exporter.write(getName(), "MinLatency(us)", min);
@@ -159,8 +178,11 @@ public class OneMeasurementHistogram extends OneMeasurement {
     }
     DecimalFormat d = new DecimalFormat("#.##");
     double report = ((double) windowtotallatency) / ((double) windowoperations);
+    long qps = windowoperations/Math.max(1, TimeUnit.NANOSECONDS.toSeconds(windowLastMeasurementNano-windowFirstMeasurementNano));
     windowtotallatency = 0;
     windowoperations = 0;
-    return "[" + getName() + " AverageLatency(us)=" + d.format(report) + "]";
+    windowFirstMeasurementNano = 0;
+    windowLastMeasurementNano = 0;
+    return "[" + getName() + " AverageLatency(us)=" + d.format(report) +",qps="+qps+ "]";
   }
 }

@@ -75,7 +75,11 @@ public class HashRedisClient extends AbstractRedisClient {
   private Status doRead(String table, String key, Set<String> fields, Map<String, ByteIterator> result) {
     if (fields == null) {
       StringByteIterator.putAllAsByteIterators(result, jedis.hgetAll(key));
-    } else {
+    } else if(1 == fields.size()){
+      String field = fields.iterator().next();
+      String value = jedis.hget(key, field);
+      result.put(field, new StringByteIterator(value));
+    }else {
       String[] fieldArray = (String[]) fields.toArray(new String[fields.size()]);
       List<String> values = jedis.hmget(key, fieldArray);
 
@@ -92,10 +96,16 @@ public class HashRedisClient extends AbstractRedisClient {
 
   @Override
   public Status insert(String table, String key, Map<String, ByteIterator> values) {
-    if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
+    if(1==values.size()){
+      Map.Entry<String, ByteIterator> field = values.entrySet().iterator().next();
+      jedis.hset(key, field.getKey(), field.getValue().toString());
       return Status.OK;
+    }else{
+      if (jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK")) {
+        return Status.OK;
+      }
+      return Status.ERROR;
     }
-    return Status.ERROR;
   }
 
   @Override
@@ -109,7 +119,13 @@ public class HashRedisClient extends AbstractRedisClient {
   }
 
   private Status doUpdate(String table, String key, Map<String, ByteIterator> values) {
-    return jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? Status.OK : Status.ERROR;
+    if(1==values.size()){
+      Map.Entry<String, ByteIterator> entry = values.entrySet().iterator().next();
+      jedis.hset(key, entry.getKey(), entry.getValue().toString());
+      return Status.OK;
+    }else{
+      return jedis.hmset(key, StringByteIterator.getStringMap(values)).equals("OK") ? Status.OK : Status.ERROR;
+    }
   }
 
   @Override
@@ -119,7 +135,13 @@ public class HashRedisClient extends AbstractRedisClient {
       Jedis singleJedis = (Jedis) jedis;
       Pipeline pipeline = singleJedis.pipelined();
       for (DBRow dbRow : rows) {
-        pipeline.hmset(dbRow.getKey(), StringByteIterator.getStringMap(dbRow.getFieldMap()));
+        Map<String, ByteIterator> fieldMap = dbRow.getFieldMap();
+        if(1 == fieldMap.size()){
+          Map.Entry<String, ByteIterator> entry = fieldMap.entrySet().iterator().next();
+          pipeline.hset(dbRow.getKey(), entry.getKey(), entry.getValue().toString());
+        }else{
+          pipeline.hmset(dbRow.getKey(), StringByteIterator.getStringMap(dbRow.getFieldMap()));
+        }
       }
       pipeline.sync();
     } else {
@@ -145,7 +167,9 @@ public class HashRedisClient extends AbstractRedisClient {
         if (null == fieldSet) {
           //查询所有field
           responseList.add(pipeline.hgetAll(key));
-        } else {
+        } else if(1==fieldSet.size()){
+          responseList.add(pipeline.hget(key, fieldSet.iterator().next()));
+        }else {
           String[] fieldArray = fieldSet.toArray(new String[fieldSet.size()]);
           responseList.add(pipeline.hmget(key, fieldArray));
         }
@@ -160,6 +184,9 @@ public class HashRedisClient extends AbstractRedisClient {
           //查询所有field
           Response<Map<String, String>> response = (Response<Map<String, String>>) responseList.get(index);
           StringByteIterator.putAllAsByteIterators(fieldResultMap, response.get());
+        }else if(1==fieldSet.size()){
+          Response<String> response = (Response<String>) responseList.get(index);
+          fieldResultMap.put(fieldSet.iterator().next(), new StringByteIterator(response.get()));
         }else{
           Response<List<String>> response = (Response<List<String>>) responseList.get(index);
           List<String> values = response.get();

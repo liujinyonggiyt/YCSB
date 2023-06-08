@@ -7,12 +7,12 @@ workload=site.ycsb.workloads.CoreWorkload
 # The number of records in the table to be inserted in
 # the load phase or the number of records already in the
 # table before the run phase.
-recordcount=1000000
+recordcount=6250
 
 # There is no default setting for operationcount but it is
 # required to be set.
 # The number of operations to use during the run phase.
-operationcount=3000000
+operationcount=8000000
 
 # The number of insertions to do, if different from recordcount.
 # Used with insertstart to grow an existing table.
@@ -25,7 +25,7 @@ insertstart=0
 fieldcount=1
 
 # The size of each field (in bytes)
-fieldlength=32
+fieldlength=1450
 
 # Should read all fields
 readallfields=false
@@ -47,6 +47,6 @@ readproportion=1
 insertorder=ordered
 
 # The distribution of requests across the keyspace
-requestdistribution=zipfian
-#requestdistribution=uniform
+#requestdistribution=zipfian
+requestdistribution=uniform
 #requestdistribution=latest

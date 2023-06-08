@@ -7,12 +7,12 @@ workload=site.ycsb.workloads.CoreWorkload
 # The number of records in the table to be inserted in
 # the load phase or the number of records already in the 
 # table before the run phase.
-recordcount=1000000
+recordcount=6250
 
 # There is no default setting for operationcount but it is
 # required to be set.
 # The number of operations to use during the run phase.
-operationcount=500000
+operationcount=800000
 
 # The number of insertions to do, if different from recordcount.
 # Used with insertstart to grow an existing table.
@@ -25,7 +25,7 @@ insertstart=0
 fieldcount=1
 
 # The size of each field (in bytes)
-fieldlength=32
+fieldlength=1067
 
 # Should read all fields
 readallfields=false
@@ -42,11 +42,11 @@ fieldlengthdistribution=constant
 batchreadproportion=1
 
 # 最小批次
-minbatchlength=1
+minbatchlength=500
 # 最大批次 On a single batch, the maximum number of records to access
-maxbatchlength=6000
+maxbatchlength=500
 # 批次数量 The distribution used to choose the number of records to access on a batch
-batchlengthdistribution=zipfian
+batchlengthdistribution=constant
 
 
 # Should records be inserted in order or pseudo-randomly
@@ -54,6 +54,6 @@ batchlengthdistribution=zipfian
 insertorder=ordered
 
 # The distribution of requests across the keyspace
-requestdistribution=zipfian
-#requestdistribution=uniform
+#requestdistribution=zipfian
+requestdistribution=uniform
 #requestdistribution=latest

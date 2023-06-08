@@ -25,6 +25,7 @@ import site.ycsb.measurements.Measurements;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * The core benchmark scenario. Represents a set of clients doing simple CRUD operations. The
@@ -141,6 +142,7 @@ public class CoreWorkload extends Workload {
    * Generator object that produces field lengths.  The value of this depends on the properties that
    * start with "FIELD_LENGTH_".
    */
+  private int fieldlength;
   protected NumberGenerator fieldlengthgenerator;
 
   /**
@@ -225,6 +227,8 @@ public class CoreWorkload extends Workload {
    */
   public static final String UPDATE_PROPORTION_PROPERTY = "updateproportion";
   public static final String BATCH_UPDATE_PROPORTION_PROPERTY = "batchupdateproportion";
+  public static final String READ_UPDATE_PROPORTION_PROPERTY = "readupdateproportion";
+  public static final String EXPAND_VALUE_PROPORTION_PROPERTY = "expandvalueproportion";
 
   /**
    * The default proportion of transactions that are updates.
@@ -234,6 +238,8 @@ public class CoreWorkload extends Workload {
    * The default proportion of transactions that are batch updates.
    */
   public static final String BATCH_UPDATE_PROPORTION_PROPERTY_DEFAULT = "0.0";
+  public static final String READ_UPDATE_PROPORTION_PROPERTY_DEFAULT = "0.0";
+  public static final String EXPAND_VALUE_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
    * The name of the property for the proportion of transactions that are inserts.
@@ -244,6 +250,16 @@ public class CoreWorkload extends Workload {
    * The default proportion of transactions that are inserts.
    */
   public static final String INSERT_PROPORTION_PROPERTY_DEFAULT = "0.0";
+
+  /**
+   * The name of the property for the proportion of transactions that are inserts.
+   */
+  public static final String INSERT_FIELD_PROPORTION_PROPERTY = "insertfieldproportion";
+
+  /**
+   * The default proportion of transactions that are inserts.
+   */
+  public static final String INSERT_FIELD_PROPORTION_PROPERTY_DEFAULT = "0.0";
 
   /**
    * The name of the property for the proportion of transactions that are scans.
@@ -401,7 +417,7 @@ public class CoreWorkload extends Workload {
    * Default value of the key name prefix.
    */
   public static final String KEY_NAME_PREFIX_DEFAULT = "user";
-  private static final int DB_BATCH_SIZE = 1000;
+  private static final int DB_BATCH_SIZE = 50;
 
   protected NumberGenerator keysequence;
   protected DiscreteGenerator operationchooser;
@@ -411,7 +427,7 @@ public class CoreWorkload extends Workload {
   protected NumberGenerator scanlength;
   protected NumberGenerator batchlength;
   protected boolean orderedinserts;
-  protected long fieldcount;
+  protected int fieldcount;
   protected long recordcount;
   protected int zeropadding;
   protected int insertionRetryLimit;
@@ -419,6 +435,8 @@ public class CoreWorkload extends Workload {
 
   protected String keynameprefix;
 
+  private String insertFieldKey;
+  private int insertFieldIndex;
   private Measurements measurements = Measurements.getMeasurements();
 
   public static String buildKeyName(String keynameprefix, long keynum, int zeropadding, boolean orderedinserts) {
@@ -476,13 +494,14 @@ public class CoreWorkload extends Workload {
     table = p.getProperty(TABLENAME_PROPERTY, TABLENAME_PROPERTY_DEFAULT);
 
     fieldcount =
-        Long.parseLong(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
+        Integer.parseInt(p.getProperty(FIELD_COUNT_PROPERTY, FIELD_COUNT_PROPERTY_DEFAULT));
     final String fieldnameprefix = p.getProperty(FIELD_NAME_PREFIX, FIELD_NAME_PREFIX_DEFAULT);
     fieldnames = new ArrayList<>();
     for (int i = 0; i < fieldcount; i++) {
       fieldnames.add(fieldnameprefix + i);
     }
     this.keynameprefix = p.getProperty(KEY_NAME_PREFIX, KEY_NAME_PREFIX_DEFAULT);
+    fieldlength = Integer.parseInt(p.getProperty(FIELD_LENGTH_PROPERTY, FIELD_LENGTH_PROPERTY_DEFAULT));
     fieldlengthgenerator = CoreWorkload.getFieldLengthGenerator(p);
 
     recordcount =
@@ -601,7 +620,9 @@ public class CoreWorkload extends Workload {
       throw new WorkloadException(
           "Distribution \"" + scanlengthdistrib + "\" not allowed for scan length");
     }
-    if (batchlengthdistrib.compareTo("uniform") == 0) {
+    if(batchlengthdistrib.compareTo("constant") == 0) {
+      batchlength = new ConstantIntegerGenerator(minbatchlength);
+    }else if (batchlengthdistrib.compareTo("uniform") == 0) {
       batchlength = new UniformLongGenerator(minbatchlength, maxbatchlength);
     } else if (batchlengthdistrib.compareTo("zipfian") == 0) {
       batchlength = new ZipfianGenerator(minbatchlength, maxbatchlength);
@@ -642,16 +663,18 @@ public class CoreWorkload extends Workload {
     HashMap<String, ByteIterator> values = new HashMap<>();
 
     for (String fieldkey : fieldnames) {
-      ByteIterator data;
-      if (dataintegrity) {
-        data = new StringByteIterator(buildDeterministicValue(key, fieldkey));
-      } else {
-        // fill with random data
-        data = new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
-      }
-      values.put(fieldkey, data);
+      values.put(fieldkey, buildValue(key, fieldkey));
     }
     return values;
+  }
+
+  private ByteIterator buildValue(String key, String fieldKey){
+    if (dataintegrity) {
+      return new StringByteIterator(buildDeterministicValue(key, fieldKey));
+    } else {
+      // fill with random data
+      return new RandomByteIterator(fieldlengthgenerator.nextValue().longValue());
+    }
   }
 
   /**
@@ -753,6 +776,10 @@ public class CoreWorkload extends Workload {
     case "READ":
       doTransactionRead(db);
       break;
+    case "READ_UPDATE":
+      doTransactionRead(db);
+      doTransactionUpdate(db);
+      break;
     case "BATCH_READ":
       doTransactionBatchRead(db);
       break;
@@ -765,9 +792,15 @@ public class CoreWorkload extends Workload {
     case "INSERT":
       doTransactionInsert(db);
       break;
+    case "INSERT_FIELD":
+      doTransactionInsertField(db);
+      break;
     case "SCAN":
       doTransactionScan(db);
       break;
+    case "EXPAND_VALUE":
+        doTransactionExpandValue(db);
+        break;
     default:
       doTransactionReadModifyWrite(db);
     }
@@ -982,6 +1015,81 @@ public class CoreWorkload extends Workload {
       transactioninsertkeysequence.acknowledge(keynum);
     }
   }
+  public void doTransactionInsertField(DB db) {
+    //旧key先插入field，到达field上限，则插入新的key
+    String dbkey;
+    int fieldIndex;
+    synchronized (this){
+      if(null == insertFieldKey){
+        insertFieldKey = transactionInsertNextKey();
+        insertFieldIndex = 0;
+      }else{
+        insertFieldIndex++;
+
+        if(insertFieldIndex>=fieldcount){
+          insertFieldIndex = 0;
+          insertFieldKey = transactionInsertNextKey();
+        }
+      }
+
+      dbkey = insertFieldKey;
+      fieldIndex = insertFieldIndex;
+    }
+
+    String fieldName = fieldnames.get(fieldIndex);
+    Map<String, ByteIterator> values = new HashMap<>();
+    values.put(fieldName, buildValue(dbkey, fieldName));
+    if(0 == fieldIndex){
+      db.insert(table, dbkey, values);
+    }else{
+      db.update(table, dbkey, values);
+    }
+
+  }
+
+  public void doTransactionExpandValue(DB db) {
+    //旧key先插入field，到达field上限，则插入新的key
+    String dbkey;
+    int fieldIndex;
+    synchronized (this){
+      if(null == insertFieldKey){
+        insertFieldKey = transactionInsertNextKey();
+        insertFieldIndex = 0;
+      }else{
+        insertFieldIndex++;
+
+        if(insertFieldIndex>=fieldcount){
+          insertFieldIndex = 0;
+          insertFieldKey = transactionInsertNextKey();
+        }
+      }
+
+      dbkey = insertFieldKey;
+      fieldIndex = insertFieldIndex;
+    }
+
+    String fieldName = fieldnames.get(0);
+    Map<String, ByteIterator> values = new HashMap<>();
+    if(0==fieldIndex){
+      int randomFieldLength = fieldlength/fieldcount;
+      values.put(fieldName, new RandomByteIterator(randomFieldLength));
+      db.insert(table, dbkey, values);
+    }else{//相同key多线程会并发更新。不会影响吞吐量的结果。可以改为ThreadLocal的方式
+      int randomFieldLength = fieldlength * (fieldIndex+1)/fieldcount;
+      values.put(fieldName, new RandomByteIterator(randomFieldLength));
+      db.update(table, dbkey, values);
+    }
+  }
+
+  private String transactionInsertNextKey(){
+    // choose the next key
+    long keynum = transactioninsertkeysequence.nextValue();
+    try {
+      return CoreWorkload.buildKeyName(keynameprefix, keynum, zeropadding, orderedinserts);
+    } finally {
+      transactioninsertkeysequence.acknowledge(keynum);
+    }
+  }
 
   /**
    * Creates a weighted discrete values with database operations for a workload to perform.
@@ -1005,12 +1113,18 @@ public class CoreWorkload extends Workload {
         p.getProperty(UPDATE_PROPORTION_PROPERTY, UPDATE_PROPORTION_PROPERTY_DEFAULT));
     final double insertproportion = Double.parseDouble(
         p.getProperty(INSERT_PROPORTION_PROPERTY, INSERT_PROPORTION_PROPERTY_DEFAULT));
+    final double insertFieldProportion = Double.parseDouble(
+        p.getProperty(INSERT_FIELD_PROPORTION_PROPERTY, INSERT_FIELD_PROPORTION_PROPERTY_DEFAULT));
     final double scanproportion = Double.parseDouble(
         p.getProperty(SCAN_PROPORTION_PROPERTY, SCAN_PROPORTION_PROPERTY_DEFAULT));
     final double readmodifywriteproportion = Double.parseDouble(p.getProperty(
         READMODIFYWRITE_PROPORTION_PROPERTY, READMODIFYWRITE_PROPORTION_PROPERTY_DEFAULT));
     final double batchupdateproportion = Double.parseDouble(
         p.getProperty(BATCH_UPDATE_PROPORTION_PROPERTY, BATCH_UPDATE_PROPORTION_PROPERTY_DEFAULT));
+    final double readupdateproportion = Double.parseDouble(
+        p.getProperty(READ_UPDATE_PROPORTION_PROPERTY, READ_UPDATE_PROPORTION_PROPERTY_DEFAULT));
+    final double expandvalueproportion = Double.parseDouble(
+        p.getProperty(EXPAND_VALUE_PROPORTION_PROPERTY, EXPAND_VALUE_PROPORTION_PROPERTY_DEFAULT));
 
     final DiscreteGenerator operationchooser = new DiscreteGenerator();
     if (readproportion > 0) {
@@ -1029,6 +1143,14 @@ public class CoreWorkload extends Workload {
       operationchooser.addValue(insertproportion, "INSERT");
     }
 
+    if (insertproportion > 0) {
+      operationchooser.addValue(insertproportion, "INSERT");
+    }
+
+    if (insertFieldProportion > 0) {
+      operationchooser.addValue(insertFieldProportion, "INSERT_FIELD");
+    }
+
     if (scanproportion > 0) {
       operationchooser.addValue(scanproportion, "SCAN");
     }
@@ -1039,6 +1161,12 @@ public class CoreWorkload extends Workload {
 
     if (batchupdateproportion > 0) {
       operationchooser.addValue(batchupdateproportion, "BATCH_UPDATE");
+    }
+    if (readupdateproportion > 0) {
+      operationchooser.addValue(readupdateproportion, "READ_UPDATE");
+    }
+    if (expandvalueproportion > 0) {
+      operationchooser.addValue(expandvalueproportion, "EXPAND_VALUE");
     }
     return operationchooser;
   }

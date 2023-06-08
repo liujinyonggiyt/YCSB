@@ -43,7 +43,7 @@ import static site.ycsb.workloads.CoreWorkload.FIELD_COUNT_PROPERTY_DEFAULT;
 
 /**
  * YCSB binding for <a href="http://redis.io/">Redis</a>.
- * K/V形式存储，只支持一个field，将field的值转换为value
+ * K/V形式存储，CoreWorkload只生成一个field，将field的值转换为value
  *
  * See {@code redis/README.md} for details.
  */

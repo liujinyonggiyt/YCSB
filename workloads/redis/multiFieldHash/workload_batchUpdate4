@@ -4,14 +4,14 @@ workload=site.ycsb.workloads.CoreWorkload
 # There is no default setting for recordcount but it is
 # required to be set.
 # The number of records in the table to be inserted in
-# the load phase or the number of records already in the 
+# the load phase or the number of records already in the
 # table before the run phase.
-recordcount=100000
+recordcount=2000
 
 # There is no default setting for operationcount but it is
 # required to be set.
 # The number of operations to use during the run phase.
-operationcount=8000000
+operationcount=100000
 
 # The number of insertions to do, if different from recordcount.
 # Used with insertstart to grow an existing table.
@@ -21,35 +21,40 @@ operationcount=8000000
 insertstart=0
 
 # The number of fields in a record
-fieldcount=10
+fieldcount=500
 
 # The size of each field (in bytes)
-fieldlength=28
+fieldlength=32
 
-# Should read all fields
-readallfields=false
 
-readallfieldsbyname=true
+# Should write all fields on update
+writeallfields=false
 
 # The distribution used to choose the length of a field
 fieldlengthdistribution=constant
 #fieldlengthdistribution=uniform
 #fieldlengthdistribution=zipfian
 
-# What proportion of operations are reads
-readproportion=1
+# 批量写
+batchupdateproportion=1
+
+# 最小批次
+minbatchlength=1
+# 最大批次 On a single batch, the maximum number of records to access
+maxbatchlength=6000
+# 批次数量 The distribution used to choose the number of records to access on a batch
+batchlengthdistribution=zipfian
 
 # Should records be inserted in order or pseudo-randomly
 #insertorder=hashed
 insertorder=ordered
 
 # The distribution of requests across the keyspace
-#requestdistribution=zipfian
-requestdistribution=uniform
+requestdistribution=zipfian
+#requestdistribution=uniform
 #requestdistribution=latest
 
 # How the latency measurements are presented
 measurementtype=histogram
 #measurementtype=timeseries
 #measurementtype=raw
-
